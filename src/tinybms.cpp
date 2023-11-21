@@ -5,6 +5,7 @@
 ModbusMaster *modbus;
 
 void init_tinybms() {
+  DEBUGP(F("init_tinybms()\r\n"));
   modbus = new ModbusMaster();
 
   // Init the modbus interface
@@ -14,6 +15,9 @@ void init_tinybms() {
 
 int readRegistersWithRetry(uint16_t idx, uint16_t count, uint16_t *dest,
                            uint8_t retrcnt) {
+
+  DEBUGP(F("readRegistersWithRetry(%hu, %hu, %x, %hhu)\r\n"), idx, count, (int)dest, retrcnt);
+
   do {
     uint8_t result = 0;
 
@@ -22,12 +26,12 @@ int readRegistersWithRetry(uint16_t idx, uint16_t count, uint16_t *dest,
       uint16_t j = 0;
       for (j = 0; j < count; j++) {
         dest[j] = modbus->getResponseBuffer(j);
-        DEBUGP("register %hhu = %hx\r\n", j, dest[j]);
+        DEBUGP(F("register %hhu = %hx\r\n"), j, dest[j]);
       }
       break;
     } else {
       // this may be too chatty
-      DEBUGP("modbus error %hhx\r\n", result);
+      DEBUGP(F("Modbus error %hhx\r\n"), result);
     }
 
     retrcnt--;

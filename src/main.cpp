@@ -16,6 +16,9 @@
 #define SERIAL_BAUD 9600
 #define POLL_INTERVAL 1000
 
+#define DISPLAY_BUTTON_PIN 7
+#define DISPLAY_TIMEOUT 60000
+
 Battery_voltage battery_voltage;
 Battery_current battery_current;
 Battery_soc battery_soc;
@@ -27,20 +30,15 @@ Fprintable fu8x8(u8x8);
 
 AltSoftSerial Serial1(SERIAL1_RX_PIN, SERIAL1_TX_PIN);
 
-const char SOC_STRING[] = "SOC:     %hu%%   ";
-const char CURRENT_STRING[] = "Current: %sA ";
-const char VOLTS_STRING[] = "Voltage: %sV ";
-const char CELLS_STRING[] = "CELL: %s-%s";
-const char TEMP_STRING[] = "TEMP: %u %u %u C";
-const char UPTIME_STRING[] = "Uptime: %us\r\n";
-const char MEMORY_STRING[] = "Free memory: %u\r\n\r\n";
+bool displayPowerSaveEnable = true;
+unsigned long displayWakeCall;
 
 void display_nobt_msg();
 
 void setup() {
-
   Serial1.begin(SERIAL_BAUD);
-  DEBUGP("Debug output enabled\r\n");
+  DEBUGP(F("Debug output enabled\r\n"));
+
   fSerial1.print(F("Starting TinyBMSDisplay\r\n"));
   u8x8.begin();
 
@@ -53,6 +51,9 @@ void setup() {
 
   init_tinybms();
   u8x8.clear();
+
+  pinMode(DISPLAY_BUTTON_PIN, INPUT);
+
   fSerial1.print(F("Init OK\r\n"));
 }
 
@@ -71,27 +72,27 @@ void display_data() {
 
   u8x8.setFont(u8x8_font_8x13B_1x2_f);
   u8x8.setCursor(0, 0);
-  fu8x8.printf(SOC_STRING, battery_soc.stateOfChargeHp / 1000000);
+  fu8x8.printf(F("SOC:     %hu%%   "), battery_soc.stateOfChargeHp / 1000000);
 
   u8x8.setFont(u8x8_font_pcsenior_r);
 
   u8x8.setCursor(0, 2);
-  fu8x8.printf(CURRENT_STRING, float2str1(battery_current.pack_current));
+  fu8x8.printf(F("Current: %sA "), float2str1(battery_current.pack_current));
 
   u8x8.setCursor(0, 3);
-  fu8x8.printf(VOLTS_STRING, float2str1(battery_voltage.pack_voltage.fvoltage));
+  fu8x8.printf(F("Voltage: %sV "),
+               float2str1(battery_voltage.pack_voltage.fvoltage));
 
   u8x8.setFont(u8x8_font_chroma48medium8_u);
 
   u8x8.setCursor(0, 5);
-  fu8x8.printf(CELLS_STRING,
+  fu8x8.printf(F("CELL: %s-%s"),
                float2str1(battery_voltage.min_cell_voltage / 1000.0),
                float2str2(battery_voltage.max_cell_voltage / 1000.0));
 
   u8x8.setCursor(0, 6);
-  fu8x8.printf(TEMP_STRING, battery_temp.temp_sensor0 / 10,
-               battery_temp.temp_sensor1 / 10,
-               battery_temp.temp_sensor2 / 10);
+  fu8x8.printf(F("TEMP: %u %u %u C"), battery_temp.temp_sensor0 / 10,
+               battery_temp.temp_sensor1 / 10, battery_temp.temp_sensor2 / 10);
 }
 
 void display_nobt_msg() {
@@ -101,11 +102,31 @@ void display_nobt_msg() {
   u8x8.print(F("No BT Connection"));
 }
 
+void check_display_wake() {
+  
+  if(digitalRead(DISPLAY_BUTTON_PIN) == HIGH) {
+    DEBUGP(F("Button press detected\r\n"));
+    displayWakeCall = millis();
+  }
+
+}
+
 void loop() {
+  check_display_wake();
+
+  if(displayPowerSaveEnable && millis() - displayWakeCall > DISPLAY_TIMEOUT) {
+    DEBUGP(F("Disabling display"));
+    u8x8.setPowerSave(true);
+  } else {
+    DEBUGP(F("Enabling display"));
+    u8x8.setPowerSave(false);
+  }
+
   load_battery_data();
   display_data();
+  check_display_wake();
 
-  fSerial1.printf(UPTIME_STRING, millis() / 1000);
-  fSerial1.printf(MEMORY_STRING, freeMemory());
+  fSerial1.printf(F("Uptime: %us\r\n"), millis() / 1000);
+  fSerial1.printf(F("Free memory: %u\r\n\r\n"), freeMemory());
   delay(POLL_INTERVAL);
 }

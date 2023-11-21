@@ -24,15 +24,53 @@ int freeMemory() {
 
 Fprintable::Fprintable(Print &p) : _print(p) {}
 
+#define PRINT_BUFSIZ 16
+size_t Fprintable::printf(const char *fmt, va_list args) {
+  size_t result = 0;
+  char *buf = (char *)malloc(PRINT_BUFSIZ);
+  if (buf) {
+    result = vsnprintf(
+        buf, PRINT_BUFSIZ, fmt,
+        args);
+    if (result > PRINT_BUFSIZ - 1) {
+      buf = (char *)realloc(buf, result + 1);
+      vsnprintf(buf, result + 1, fmt, args);
+    }
+
+    result = _print.write(buf);
+    free(buf);
+  }
+  return result;
+}
+
 size_t Fprintable::printf(const char *fmt, ...) {
   size_t result = 0;
-  char *buf = (char *)malloc(128);
+  va_list argp;
+  va_start(argp, fmt);
+  result = this->printf(fmt, argp);
+  va_end(argp);
+  return result;
+}
+
+size_t Fprintable::printf(const __FlashStringHelper *ifsh, ...) {
+  size_t result = 0;
+  PGM_P p = reinterpret_cast<PGM_P>(ifsh);
+  char *buf = (char *)malloc(PRINT_BUFSIZ);
   if (buf) {
     va_list argp;
-    va_start(argp, fmt);
-    vsprintf(buf, fmt, argp);
-    result = _print.print(buf);
+    va_start(argp, ifsh);
+    result = vsnprintf_P(
+        buf, PRINT_BUFSIZ, p,
+        argp);
     va_end(argp);
+    if (result > PRINT_BUFSIZ - 1) {
+      buf = (char *)realloc(buf, result + 1);
+      va_start(argp, ifsh);
+      vsnprintf_P(buf, result + 1, p, argp);
+      va_end(argp);
+    }
+
+    result = _print.write(buf);
     free(buf);
   }
   return result;

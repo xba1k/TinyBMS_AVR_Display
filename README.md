@@ -12,7 +12,7 @@ Since the BT module is connected to the hardware serial RX/TX lines, BT module h
 
 # Hardware
 
-This was developed primarily for use with Arduino Nano clones. HC-05 module provides Bluetooth connectivity. Additional (optional) USB to Serial adapter is needed to watch the log output.
+This was developed primarily for use with Arduino Nano clones. HC-05 module provides Bluetooth connectivity. Additional (optional) USB to Serial adapter is needed to watch the log output on pin D9. Pin D7 is setup as a display wakeup input. Pull high to keep display always active, or wire a button.
 
 Pinout :
 
@@ -23,6 +23,7 @@ D0 (TX) -> BT RX
 D1 (RX) -> BT TX  
   
 D9 -> USB serial RX  
+D7 -> 5V
 
 D0 should be connected via a divider or a logic level shifter since HC-05 expects 3.3V input. ESP-01 adapter can be used as well.
 

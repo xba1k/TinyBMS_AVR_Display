@@ -22,11 +22,13 @@ int bt_cmd(const char *cmd, char *resp) {
   return bytes;
 }
 
+#define BT_BUFSIZ 64
+
 int init_bluetooth(void) {
 
-  char *bt_buf = (char *)malloc(128);
+  char *bt_buf = (char *)malloc(BT_BUFSIZ);
 
-  DEBUGP("init_bt\r\n");
+  DEBUGP(F("init_bt\r\n"));
 
   btSerial->begin(BT_BAUD);
 
@@ -37,13 +39,13 @@ int init_bluetooth(void) {
 
   // Check if in the AT mode
   if (bt_cmd("AT\r\n", bt_buf) > 0) {
-    if (strncmp(bt_buf, "OK\r\n", 128) != 0) {
-      fSerial1.printf("Unexpected BT response: %s\r\n", bt_buf);
+    if (strncmp(bt_buf, "OK\r\n", BT_BUFSIZ) != 0) {
+      fSerial1.printf(F("Unexpected BT response: %s\r\n"), bt_buf);
       free(bt_buf);
       return -1;
     }
   } else {
-      fSerial1.printf("BT already in data mode?\r\n");
+      fSerial1.println(F("BT already in data mode?\r\n"));
       free(bt_buf);
       return 0;
   }

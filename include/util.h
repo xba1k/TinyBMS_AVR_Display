@@ -26,7 +26,9 @@ using namespace std;
 class Fprintable : public Print {
  public:
   Fprintable(Print &p);
+  size_t printf(const char *fmt, va_list args);
   size_t printf(const char *fmt, ...);
+  size_t printf(const __FlashStringHelper *ifsh, ...);
 
   size_t write(uint8_t b) override { return this->_print.write(b); }
   size_t write(const uint8_t *buffer, size_t size) override {
